@@ -44,10 +44,10 @@ Copy `.env.example` to `.env.local`:
 
 ```bash
 VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
 ```
 
-Only use the public Supabase anon key in the frontend. Never add a service-role key or database password.
+Only use the Supabase publishable key in the frontend. Never add a secret key, service-role key, or database password.
 
 For Vercel, add the same two variables in Project Settings → Environment Variables.
 
