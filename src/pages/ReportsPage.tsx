@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Share2 } from 'lucide-react'
+import { Download, FileSpreadsheet, Share2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { BloodPressureChart, BloodSugarChart } from '../components/TrendChart'
 import { formatPeriod, rollingWeek } from '../lib/date'
 import { getProfile } from '../services/profile'
 import { listReadings } from '../services/readings'
 import type { HealthReading, UserProfile } from '../types'
-import { generateWeeklyReportPdf } from '../utils/pdf'
 import {
   delta,
   deltaText,
@@ -21,6 +20,7 @@ export default function ReportsPage() {
   const [previousReadings, setPreviousReadings] = useState<HealthReading[]>([])
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [error, setError] = useState('')
   const [shareMessage, setShareMessage] = useState('')
 
@@ -58,7 +58,8 @@ export default function ReportsPage() {
   const previousSugar = summarizeSugar(previousReadings)
   const grouped = groupReadingsByDay(readings)
 
-  function makePdf() {
+  async function makePdf() {
+    const { generateWeeklyReportPdf } = await import('../utils/pdf')
     return generateWeeklyReportPdf({
       readings,
       patientName: profile?.name,
@@ -67,39 +68,63 @@ export default function ReportsPage() {
     })
   }
 
-  function downloadPdf() {
-    const { blob, filename } = makePdf()
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = filename
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(url)
+  async function downloadPdf() {
+    setExporting(true)
+    try {
+      const { blob, filename } = await makePdf()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function downloadCsv() {
+    const { downloadReadingsCsv } = await import('../utils/csv')
+    downloadReadingsCsv(readings, period.start, period.end)
   }
 
   async function sharePdf() {
-    const { blob, filename } = makePdf()
-    const file = new File([blob], filename, { type: 'application/pdf' })
-    const nav = navigator as any
-
-    if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
-      try {
-        await nav.share({
-          title: 'Weekly Health Report',
-          text: 'Health Tracker weekly report',
-          files: [file]
-        })
-        setShareMessage('Report shared.')
-        return
-      } catch (error) {
-        if ((error as DOMException)?.name === 'AbortError') return
+    setExporting(true)
+    try {
+      const { blob, filename } = await makePdf()
+      const file = new File([blob], filename, { type: 'application/pdf' })
+      const nav = navigator as Navigator & {
+        canShare?: (data?: ShareData) => boolean
       }
-    }
 
-    downloadPdf()
-    setShareMessage('Sharing is not available here, so the PDF was downloaded instead.')
+      if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
+        try {
+          await nav.share({
+            title: 'Weekly Health Report',
+            text: 'Health Tracker weekly report',
+            files: [file]
+          })
+          setShareMessage('Report shared.')
+          return
+        } catch (shareError) {
+          if ((shareError as DOMException)?.name === 'AbortError') return
+        }
+      }
+
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      setShareMessage('Sharing is not available here, so the PDF was downloaded instead.')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const historyOptions = [0, 1, 2, 3].map((value) => {
@@ -244,22 +269,32 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={downloadPdf}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-white px-3 font-bold text-blue-700"
+              disabled={exporting}
+              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-white px-3 font-bold text-blue-700 disabled:opacity-60"
             >
               <Download size={20} />
-              Download PDF
+              {exporting ? 'Preparing…' : 'Download PDF'}
             </button>
             <button
               type="button"
               onClick={sharePdf}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-3 font-bold text-white"
+              disabled={exporting}
+              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-3 font-bold text-white disabled:opacity-60"
             >
               <Share2 size={20} />
               Share Report
             </button>
+            <button
+              type="button"
+              onClick={downloadCsv}
+              className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
+            >
+              <FileSpreadsheet size={19} />
+              Download CSV Backup
+            </button>
           </section>
 
-          {shareMessage && <p className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">{shareMessage}</p>}
+          {shareMessage && <p className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700" role="status">{shareMessage}</p>}
 
           <p className="mt-4 px-2 text-center text-xs leading-5 text-slate-500">
             This report contains user-recorded measurements and is intended for record keeping and discussion with a healthcare professional.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, Droplets, Gauge, Plus, WifiOff } from 'lucide-react'
+import { ArrowRight, CalendarDays, Droplets, Gauge, Plus, UserRoundCog, WifiOff } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { formatDateTime, rollingWeek } from '../lib/date'
 import { getProfile } from '../services/profile'
@@ -58,6 +58,7 @@ export default function HomePage() {
   const previousSugar = sugar[1]
   const weekBpCount = weekReadings.filter((r) => r.systolic != null && r.diastolic != null).length
   const weekSugarCount = weekReadings.filter((r) => r.blood_sugar != null).length
+  const needsProfile = !loading && !profile?.name?.trim()
 
   return (
     <div className="px-5 pb-4 pt-6">
@@ -69,8 +70,22 @@ export default function HomePage() {
         <p className="mt-1 text-base text-slate-600">Your latest readings at a glance.</p>
       </header>
 
+      {needsProfile && (
+        <Link
+          to="/settings"
+          className="mb-4 flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-left"
+        >
+          <UserRoundCog size={21} className="shrink-0 text-blue-700" />
+          <span className="flex-1">
+            <span className="block text-sm font-bold text-blue-900">Add patient name</span>
+            <span className="block text-xs leading-5 text-blue-700">It will appear on weekly reports and PDFs.</span>
+          </span>
+          <ArrowRight size={18} className="text-blue-700" />
+        </Link>
+      )}
+
       {saved && (
-        <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+        <div className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700" role="status">
           Reading saved successfully.
         </div>
       )}
