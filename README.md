@@ -1,95 +1,114 @@
 # Health Tracker
 
-A simple, mobile-first personal health log for storing blood pressure and blood sugar readings. The app is intentionally focused on record keeping: it shows numerical history, changes, and weekly summaries without diagnosing or classifying readings.
+A small, mobile-first app for keeping blood pressure and blood sugar readings in one place.
 
-## Features
+I built it to make everyday health logging quick and simple: open the app, add a reading, save it, and come back to it whenever needed. The same data stays available across devices through Supabase.
 
-- Fast BP-only, sugar-only, or combined entry
-- Automatic local date and time with manual override for older readings
-- Cloud storage with Supabase Authentication and PostgreSQL
-- Row Level Security so each account can only access its own data
-- Latest-reading comparisons against the previous reading of the same measurement type
-- Filterable history with edit and delete
-- Rolling 7-day reports and previous-period comparisons
-- Blood pressure and blood sugar trend charts
-- Doctor-friendly PDF export and native device sharing when supported
-- Installable Progressive Web App
-- Recent-reading cache for read-only offline access
-- Mobile-first layout suitable for later Capacitor wrapping
+**Status:** Finished and working  
+**Live app:** https://health-tracker-zeta-gold.vercel.app/
 
-## Stack
+## What it does
 
-React, Vite, TypeScript, Tailwind CSS, Supabase, Recharts, jsPDF, and vite-plugin-pwa.
+- Record blood pressure, blood sugar, or both
+- Save the exact date and time automatically
+- Add older readings by changing the date and time
+- Compare a new reading with the previous reading of the same type
+- View, filter, edit, and delete saved readings
+- See weekly averages, highest, lowest, and latest values
+- View simple BP and sugar trend charts
+- Compare the current 7-day period with the previous one
+- Download a weekly PDF report for a doctor
+- Download readings as a CSV backup
+- Share reports using the device share menu where supported
+- Keep each user's data private with Supabase Row Level Security
+- Install the site on a phone as a PWA
 
-## 1. Create the Supabase project
+The app only summarizes recorded values. It does not diagnose readings or label them as normal, abnormal, good, or bad.
 
-Create a Supabase project, then open its SQL Editor and run:
+## Tech stack
 
-`supabase/schema.sql`
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- Supabase Auth
+- Supabase PostgreSQL
+- Row Level Security
+- Recharts
+- jsPDF
+- vite-plugin-pwa
+- Vercel
+- GitHub Actions
 
-This creates:
+## Why I kept it simple
 
-- `profiles`
-- `health_readings`
-- RLS policies
-- indexes
-- updated-at triggers
-- automatic profile creation for new auth users
+This project is meant to feel more like a personal health diary than a hospital dashboard.
 
-The database intentionally stores one `reading_timestamp` as `timestamptz` so sorting and timezone display remain reliable.
+The main flow is intentionally short:
 
-## 2. Add environment variables
-
-Copy `.env.example` to `.env.local`:
-
-```bash
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
+```
+Open app
+   ↓
+Add reading
+   ↓
+Save
+   ↓
+Done
 ```
 
-Only use the Supabase publishable key in the frontend. Never add a secret key, service-role key, or database password.
+That simplicity matters more here than adding a long list of health features.
 
-For Vercel, add the same two variables in Project Settings → Environment Variables.
+## Run it locally
 
-## 3. Run locally
+Clone the repository and install the dependencies:
 
 ```bash
+git clone https://github.com/nityansh19/Health-tracker.git
+cd Health-tracker
 npm install
+```
+
+Create a `.env.local` file in the project root:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
+
+Then run the database setup from:
+
+```
+supabase/schema.sql
+```
+
+Paste that file into the Supabase SQL Editor and run it once.
+
+Start the app:
+
+```bash
 npm run dev
 ```
 
-Production check:
+For a production build:
 
 ```bash
 npm run build
 ```
 
-## 4. Supabase Authentication
+## Database and privacy
 
-Email/password authentication is already implemented. Depending on your Supabase Auth settings, new users may need to confirm their email before signing in.
+Every reading is linked to the signed-in Supabase user. Row Level Security policies restrict accounts to their own readings and profile.
 
-For a simple family-only deployment, create the account once and keep the session persisted on the phone.
+Only the Supabase publishable key is used in the frontend. Secret keys, service-role keys, and database passwords should never be committed to the repository.
 
-## 5. Deploy to Vercel
+## Deployment
 
-Import this GitHub repository into Vercel, add the two Supabase environment variables, and deploy. `vercel.json` includes the SPA fallback needed for client-side routes.
+The current version is deployed on Vercel:
 
-## PWA
+**https://health-tracker-zeta-gold.vercel.app/**
 
-The PWA manifest and service worker are generated by `vite-plugin-pwa`. Once deployed over HTTPS, supported browsers can install Health Tracker on the home screen and open it in standalone mode.
+The project is also configured as a Progressive Web App, so supported browsers can install it directly to the phone's home screen.
 
-Offline behavior is deliberately conservative: recently cached readings can still be viewed, but new writes are not queued offline. This avoids duplicate or conflicting health records.
+---
 
-## Data principles
-
-The app:
-
-- calculates statistics only from values that actually exist
-- never substitutes missing measurements with zero
-- compares BP only with prior BP and sugar only with prior sugar
-- displays numerical change without calling a result normal, abnormal, good, bad, safe, or dangerous
-- is a personal record-keeping tool, not a diagnostic system
-
-## Future mobile packaging
-
-The frontend is already touch-first, responsive, and route-based. It can later be wrapped with Capacitor for Android/iOS without rebuilding the application UI.
+Built as a focused, practical tool for recording and reviewing BP and blood sugar without making the experience complicated.
