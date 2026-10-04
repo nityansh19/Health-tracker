@@ -11,6 +11,7 @@ import {
   deltaText,
   groupReadingsByDay,
   summarizeBp,
+  summarizePulse,
   summarizeSugar
 } from '../utils/stats'
 
@@ -53,8 +54,10 @@ export default function ReportsPage() {
   }, [period.start.getTime(), period.end.getTime(), previousPeriod.start.getTime(), previousPeriod.end.getTime()])
 
   const bp = summarizeBp(readings)
+  const pulse = summarizePulse(readings)
   const sugar = summarizeSugar(readings)
   const previousBp = summarizeBp(previousReadings)
+  const previousPulse = summarizePulse(previousReadings)
   const previousSugar = summarizeSugar(previousReadings)
   const grouped = groupReadingsByDay(readings)
 
@@ -183,6 +186,20 @@ export default function ReportsPage() {
           </ReportSummaryCard>
 
           <ReportSummaryCard
+            title="Pulse"
+            unit="bpm"
+            count={pulse.count}
+            average={pulse.count ? String(pulse.average) : '—'}
+            highest={pulse.highest ? String(pulse.highest.pulse) : '—'}
+            lowest={pulse.lowest ? String(pulse.lowest.pulse) : '—'}
+            latest={pulse.latest ? String(pulse.latest.pulse) : '—'}
+          >
+            <p className="rounded-2xl bg-rose-50 p-4 text-sm font-medium text-rose-700">
+              Pulse readings are recorded in beats per minute.
+            </p>
+          </ReportSummaryCard>
+
+          <ReportSummaryCard
             title="Blood Sugar"
             unit="mg/dL"
             count={sugar.count}
@@ -194,7 +211,7 @@ export default function ReportsPage() {
             <BloodSugarChart readings={readings} />
           </ReportSummaryCard>
 
-          {(bp.count > 0 || sugar.count > 0) && (
+          {(bp.count > 0 || pulse.count > 0 || sugar.count > 0) && (
             <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
               <h2 className="text-lg font-bold text-slate-900">Compared With Previous 7 Days</h2>
               <p className="mt-1 text-sm text-slate-500">Numerical change only. No medical interpretation is applied.</p>
@@ -213,6 +230,18 @@ export default function ReportsPage() {
                   </div>
                 )}
 
+                {pulse.count > 0 && previousPulse.count > 0 && (
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="font-bold text-slate-800">Pulse Average</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      This period: {pulse.average} bpm • Previous: {previousPulse.average} bpm
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-slate-700">
+                      {deltaText(delta(pulse.average, previousPulse.average), 'bpm')}
+                    </p>
+                  </div>
+                )}
+
                 {sugar.count > 0 && previousSugar.count > 0 && (
                   <div className="rounded-2xl bg-slate-50 p-4">
                     <p className="font-bold text-slate-800">Blood Sugar Average</p>
@@ -225,7 +254,7 @@ export default function ReportsPage() {
                   </div>
                 )}
 
-                {previousBp.count === 0 && previousSugar.count === 0 && (
+                {previousBp.count === 0 && previousPulse.count === 0 && previousSugar.count === 0 && (
                   <p className="text-sm text-slate-500">No previous-period readings are available for comparison.</p>
                 )}
               </div>
@@ -254,6 +283,7 @@ export default function ReportsPage() {
                           {reading.systolic != null && reading.diastolic != null && (
                             <span>BP: {reading.systolic} / {reading.diastolic}</span>
                           )}
+                          {reading.pulse != null && <span>Pulse: {reading.pulse} bpm</span>}
                           {reading.blood_sugar != null && <span>Sugar: {reading.blood_sugar} mg/dL</span>}
                           {reading.sugar_type && <span className="font-medium text-slate-600">{reading.sugar_type}</span>}
                         </div>
