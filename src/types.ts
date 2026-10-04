@@ -17,6 +17,7 @@ export interface HealthReading {
 export interface ReadingInput {
   systolic: number | null
   diastolic: number | null
+  pulse: number | null
   blood_sugar: number | null
   sugar_type: SugarType | null
   notes: string | null
