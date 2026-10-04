@@ -17,6 +17,9 @@ function applyMeasurement(query: any, measurement: MeasurementFilter = 'all') {
   if (measurement === 'sugar') {
     return query.not('blood_sugar', 'is', null)
   }
+  if (measurement === 'pulse') {
+    return query.not('pulse', 'is', null)
+  }
   return query
 }
 
