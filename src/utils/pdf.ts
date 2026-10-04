@@ -2,7 +2,7 @@ import { format } from 'date-fns'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { HealthReading } from '../types'
-import { bpRows, sugarRows, summarizeBp, summarizeSugar } from './stats'
+import { bpRows, pulseRows, sugarRows, summarizeBp, summarizePulse, summarizeSugar } from './stats'
 
 type Color = [number, number, number]
 
@@ -17,6 +17,10 @@ function bpValue(reading: HealthReading) {
   return reading.systolic != null && reading.diastolic != null
     ? reading.systolic + ' / ' + reading.diastolic
     : '—'
+}
+
+function pulseValue(reading: HealthReading) {
+  return reading.pulse != null ? String(reading.pulse) : '—'
 }
 
 function sugarValue(reading: HealthReading) {
@@ -77,6 +81,7 @@ function drawLineChart(
 export function generateWeeklyReportPdf({ readings, patientName, start, end }: ReportInput) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const bp = summarizeBp(readings)
+  const pulse = summarizePulse(readings)
   const sugar = summarizeSugar(readings)
   const sorted = [...readings].sort(
     (a, b) => new Date(a.reading_timestamp).getTime() - new Date(b.reading_timestamp).getTime()
@@ -118,6 +123,25 @@ export function generateWeeklyReportPdf({ readings, patientName, start, end }: R
   let cursor = ((doc as any).lastAutoTable?.finalY ?? 75) + 10
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)
+  doc.text('Pulse Summary', 14, cursor)
+
+  autoTable(doc, {
+    startY: cursor + 4,
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 3 },
+    head: [['Readings', 'Average', 'Highest', 'Lowest', 'Latest']],
+    body: [[
+      String(pulse.count),
+      pulse.count ? pulse.average + ' bpm' : '—',
+      pulse.highest ? pulseValue(pulse.highest) + ' bpm' : '—',
+      pulse.lowest ? pulseValue(pulse.lowest) + ' bpm' : '—',
+      pulse.latest ? pulseValue(pulse.latest) + ' bpm' : '—'
+    ]]
+  })
+
+  cursor = ((doc as any).lastAutoTable?.finalY ?? cursor + 20) + 10
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(12)
   doc.text('Blood Sugar Summary', 14, cursor)
 
   autoTable(doc, {
@@ -148,6 +172,17 @@ export function generateWeeklyReportPdf({ readings, patientName, start, end }: R
     ])
   }
 
+  const pulseSeries = pulseRows(sorted)
+  if (pulseSeries.length) {
+    if (cursor > 225) {
+      doc.addPage()
+      cursor = 20
+    }
+    cursor = drawLineChart(doc, 'Pulse Trend (bpm)', 18, cursor, 174, 34, [
+      { values: pulseSeries.map((r) => Number(r.pulse)), color: [225, 29, 72] }
+    ])
+  }
+
   const sugarSeries = sugarRows(sorted)
   if (sugarSeries.length) {
     if (cursor > 225) {
@@ -173,13 +208,14 @@ export function generateWeeklyReportPdf({ readings, patientName, start, end }: R
     startY: cursor + 4,
     theme: 'striped',
     styles: { fontSize: 8, cellPadding: 2.4, overflow: 'linebreak' },
-    head: [['Date', 'Time', 'BP (mmHg)', 'Sugar (mg/dL)', 'Type', 'Notes']],
+    head: [['Date', 'Time', 'BP (mmHg)', 'Pulse (bpm)', 'Sugar (mg/dL)', 'Type', 'Notes']],
     body: sorted.map((reading) => {
       const date = new Date(reading.reading_timestamp)
       return [
         format(date, 'd MMM yyyy'),
         format(date, 'h:mm a'),
         bpValue(reading),
+        pulseValue(reading),
         sugarValue(reading),
         reading.sugar_type || '—',
         reading.notes || '—'
