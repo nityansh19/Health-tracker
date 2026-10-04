@@ -1,4 +1,5 @@
 export type SugarType = 'Fasting' | 'Before Meal' | 'After Meal' | 'Random'
+export type MedicationPurpose = 'Blood Pressure' | 'Blood Sugar' | 'Both' | 'Other'
 
 export interface HealthReading {
   id: string
@@ -22,6 +23,28 @@ export interface ReadingInput {
   sugar_type: SugarType | null
   notes: string | null
   reading_timestamp: string
+}
+
+export interface Medication {
+  id: string
+  user_id: string
+  name: string
+  purpose: MedicationPurpose
+  dosage: string
+  schedule: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MedicationInput {
+  name: string
+  purpose: MedicationPurpose
+  dosage: string
+  schedule: string | null
+  notes: string | null
+  is_active: boolean
 }
 
 export interface UserProfile {
