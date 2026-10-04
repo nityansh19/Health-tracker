@@ -17,6 +17,14 @@ export interface SugarSummary {
   latest: HealthReading | null
 }
 
+export interface PulseSummary {
+  count: number
+  average: number | null
+  highest: HealthReading | null
+  lowest: HealthReading | null
+  latest: HealthReading | null
+}
+
 const round = (value: number) => Math.round(value)
 
 export function bpRows(readings: HealthReading[]) {
@@ -25,6 +33,10 @@ export function bpRows(readings: HealthReading[]) {
 
 export function sugarRows(readings: HealthReading[]) {
   return readings.filter((item) => item.blood_sugar != null)
+}
+
+export function pulseRows(readings: HealthReading[]) {
+  return readings.filter((item) => item.pulse != null)
 }
 
 export function summarizeBp(readings: HealthReading[]): BpSummary {
@@ -73,6 +85,26 @@ export function summarizeSugar(readings: HealthReading[]): SugarSummary {
   return {
     count: rows.length,
     average: round(rows.reduce((sum, r) => sum + Number(r.blood_sugar ?? 0), 0) / rows.length),
+    highest: sorted[sorted.length - 1],
+    lowest: sorted[0],
+    latest
+  }
+}
+
+export function summarizePulse(readings: HealthReading[]): PulseSummary {
+  const rows = pulseRows(readings)
+  if (!rows.length) {
+    return { count: 0, average: null, highest: null, lowest: null, latest: null }
+  }
+
+  const sorted = [...rows].sort((a, b) => (a.pulse ?? 0) - (b.pulse ?? 0))
+  const latest = [...rows].sort(
+    (a, b) => new Date(b.reading_timestamp).getTime() - new Date(a.reading_timestamp).getTime()
+  )[0]
+
+  return {
+    count: rows.length,
+    average: round(rows.reduce((sum, r) => sum + Number(r.pulse ?? 0), 0) / rows.length),
     highest: sorted[sorted.length - 1],
     lowest: sorted[0],
     latest
