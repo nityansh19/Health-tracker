@@ -63,7 +63,7 @@ export async function listReadings(filters: ReadingQuery = {}): Promise<HealthRe
   const { data, error } = await query
   if (error) throw new Error("Couldn't load your readings.")
 
-  let readings = (data ?? []).map(normalizeReading)
+  let readings: HealthReading[] = (data ?? []).map(normalizeReading)
   if (filters.measurement === 'pulse') {
     readings = readings.filter((reading) => reading.pulse != null)
   }
