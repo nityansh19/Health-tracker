@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { HealthReading, SugarType } from '../types'
+import type { HealthReading, Medication, SugarType } from '../types'
 import { bpRows, pulseRows, sugarRows, summarizeBp, summarizePulse, summarizeSugar } from './stats'
 
 type Color = [number, number, number]
@@ -11,6 +11,7 @@ interface ReportInput {
   previousReadings?: HealthReading[]
   patientName?: string | null
   doctorName?: string | null
+  medications?: Medication[]
   start: Date
   end: Date
 }
@@ -110,6 +111,7 @@ export function generateWeeklyReportPdf({
   previousReadings = [],
   patientName,
   doctorName,
+  medications = [],
   start,
   end
 }: ReportInput) {
@@ -187,6 +189,47 @@ export function generateWeeklyReportPdf({
   })
 
   cursor = ((doc as any).lastAutoTable?.finalY ?? cursor + 10) + 9
+
+  if (medications.length) {
+    if (cursor > 205) {
+      doc.addPage()
+      cursor = 20
+    }
+
+    doc.setTextColor(15, 23, 42)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    doc.text('Current Medicines', 14, cursor)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    doc.setTextColor(100, 116, 139)
+    doc.text('Medication details recorded by the patient for reference during the appointment.', 14, cursor + 5)
+
+    autoTable(doc, {
+      startY: cursor + 9,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 2.3, overflow: 'linebreak' },
+      head: [['Medicine', 'For', 'Dosage', 'When to Take', 'Notes']],
+      body: medications.map((medicine) => [
+        medicine.name,
+        medicine.purpose,
+        medicine.dosage,
+        medicine.schedule || '—',
+        medicine.notes || '—'
+      ]),
+      columnStyles: {
+        0: { cellWidth: 35 },
+        1: { cellWidth: 27 },
+        2: { cellWidth: 27 },
+        3: { cellWidth: 43 },
+        4: { cellWidth: 'auto' }
+      }
+    })
+
+    cursor = ((doc as any).lastAutoTable?.finalY ?? cursor + 25) + 9
+  }
+
   doc.setTextColor(15, 23, 42)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)
