@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, Droplets, Gauge, Plus, UserRoundCog, WifiOff } from 'lucide-react'
+import { ArrowRight, CalendarDays, Droplets, Gauge, HeartPulse, Plus, UserRoundCog, WifiOff } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { formatDateTime, rollingWeek } from '../lib/date'
 import { getProfile } from '../services/profile'
@@ -52,12 +52,16 @@ export default function HomePage() {
     [readings]
   )
   const sugar = useMemo(() => readings.filter((r) => r.blood_sugar != null), [readings])
+  const pulse = useMemo(() => readings.filter((r) => r.pulse != null), [readings])
   const latestBp = bp[0]
   const previousBp = bp[1]
   const latestSugar = sugar[0]
   const previousSugar = sugar[1]
+  const latestPulse = pulse[0]
+  const previousPulse = pulse[1]
   const weekBpCount = weekReadings.filter((r) => r.systolic != null && r.diastolic != null).length
   const weekSugarCount = weekReadings.filter((r) => r.blood_sugar != null).length
+  const weekPulseCount = weekReadings.filter((r) => r.pulse != null).length
   const needsProfile = !loading && !profile?.name?.trim()
 
   return (
@@ -141,6 +145,28 @@ export default function HomePage() {
             ) : (
               <p className="mt-5 text-base text-slate-500">No blood pressure reading yet.</p>
             )}
+
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <div className="flex items-center gap-2 text-rose-600">
+                <HeartPulse size={19} />
+                <span className="text-sm font-bold">Pulse</span>
+              </div>
+              {latestPulse ? (
+                <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
+                  <span className="text-2xl font-bold text-slate-900">{latestPulse.pulse} bpm</span>
+                  <span className="pb-0.5 text-xs font-medium text-slate-500">
+                    {formatDateTime(latestPulse.reading_timestamp).date} • {formatDateTime(latestPulse.reading_timestamp).time}
+                  </span>
+                  {previousPulse && (
+                    <span className="w-full text-xs font-semibold text-slate-600">
+                      {deltaText(delta(latestPulse.pulse, previousPulse.pulse), 'bpm')} from previous
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-slate-500">No pulse reading yet.</p>
+              )}
+            </div>
           </article>
 
           <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
@@ -193,14 +219,18 @@ export default function HomePage() {
             <p className="text-sm text-slate-500">Latest 7-day report</p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-slate-50 p-4">
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl bg-slate-50 p-3">
             <p className="text-2xl font-bold text-slate-900">{weekBpCount}</p>
-            <p className="mt-1 text-sm text-slate-600">BP readings</p>
+            <p className="mt-1 text-xs text-slate-600">BP readings</p>
           </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-2xl font-bold text-slate-900">{weekPulseCount}</p>
+            <p className="mt-1 text-xs text-slate-600">Pulse readings</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-3">
             <p className="text-2xl font-bold text-slate-900">{weekSugarCount}</p>
-            <p className="mt-1 text-sm text-slate-600">Sugar readings</p>
+            <p className="mt-1 text-xs text-slate-600">Sugar readings</p>
           </div>
         </div>
         <Link to="/reports" className="mt-3 flex min-h-12 items-center justify-between rounded-2xl px-2 text-base font-bold text-blue-700">
@@ -225,6 +255,7 @@ export default function HomePage() {
                   </p>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-base font-bold text-slate-900">
                     {reading.systolic != null && reading.diastolic != null && <span>{reading.systolic} / {reading.diastolic} mmHg</span>}
+                    {reading.pulse != null && <span>{reading.pulse} bpm</span>}
                     {reading.blood_sugar != null && <span>{reading.blood_sugar} mg/dL</span>}
                   </div>
                 </div>
@@ -233,7 +264,7 @@ export default function HomePage() {
           )) : (
             <div className="p-6 text-center">
               <p className="font-semibold text-slate-700">No readings yet</p>
-              <p className="mt-1 text-sm text-slate-500">Add your first BP or Sugar reading.</p>
+              <p className="mt-1 text-sm text-slate-500">Add your first BP, pulse, or sugar reading.</p>
             </div>
           )}
         </div>
