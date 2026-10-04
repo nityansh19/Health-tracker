@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage'
 const AddReadingPage = lazy(() => import('./pages/AddReadingPage'))
 const HistoryPage = lazy(() => import('./pages/HistoryPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const MedicinesPage = lazy(() => import('./pages/MedicinesPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="add" element={<AddReadingPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="medicines" element={<MedicinesPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
