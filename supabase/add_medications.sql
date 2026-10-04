@@ -1,5 +1,5 @@
 -- One-time migration: add medicine tracking to an existing Health Tracker database.
--- Run this in the Supabase SQL Editor.
+-- This migration has already been applied to the connected production Supabase project.
 
 create extension if not exists pgcrypto;
 
@@ -30,36 +30,34 @@ create index if not exists medications_user_active_idx
 
 alter table public.medications enable row level security;
 
+revoke all on table public.medications from anon, authenticated, service_role;
+grant select, insert, update, delete on table public.medications to authenticated;
+grant select, insert, update, delete on table public.medications to service_role;
+
 drop policy if exists "Users can read own medicines" on public.medications;
 create policy "Users can read own medicines"
   on public.medications for select
-  using (auth.uid() = user_id);
+  to authenticated
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can create own medicines" on public.medications;
 create policy "Users can create own medicines"
   on public.medications for insert
-  with check (auth.uid() = user_id);
+  to authenticated
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can edit own medicines" on public.medications;
 create policy "Users can edit own medicines"
   on public.medications for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can delete own medicines" on public.medications;
 create policy "Users can delete own medicines"
   on public.medications for delete
-  using (auth.uid() = user_id);
-
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
+  to authenticated
+  using ((select auth.uid()) = user_id);
 
 drop trigger if exists medications_set_updated_at on public.medications;
 create trigger medications_set_updated_at
