@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeft, CalendarClock, Droplets, Gauge, Save } from 'lucide-react'
+import { ArrowLeft, CalendarClock, Droplets, Gauge, HeartPulse, Save } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toLocalDateTimeInput } from '../lib/date'
 import { createReading, getReading, updateReading } from '../services/readings'
@@ -21,6 +21,7 @@ export default function AddReadingPage() {
 
   const [systolic, setSystolic] = useState('')
   const [diastolic, setDiastolic] = useState('')
+  const [pulse, setPulse] = useState('')
   const [sugar, setSugar] = useState('')
   const [sugarType, setSugarType] = useState<SugarType>('Random')
   const [notes, setNotes] = useState('')
@@ -40,6 +41,7 @@ export default function AddReadingPage() {
       .then((reading) => {
         setSystolic(reading.systolic?.toString() ?? '')
         setDiastolic(reading.diastolic?.toString() ?? '')
+        setPulse(reading.pulse?.toString() ?? '')
         setSugar(reading.blood_sugar?.toString() ?? '')
         setSugarType(reading.sugar_type ?? 'Random')
         setNotes(reading.notes ?? '')
@@ -53,6 +55,7 @@ export default function AddReadingPage() {
     event.preventDefault()
     const sys = parseNumber(systolic)
     const dia = parseNumber(diastolic)
+    const pulseRate = parseNumber(pulse)
     const bloodSugar = parseNumber(sugar)
 
     setError('')
@@ -62,12 +65,12 @@ export default function AddReadingPage() {
       return
     }
 
-    if (sys == null && dia == null && bloodSugar == null) {
-      setError('Enter a blood pressure reading, a blood sugar reading, or both.')
+    if (sys == null && dia == null && pulseRate == null && bloodSugar == null) {
+      setError('Enter a blood pressure, pulse, or blood sugar reading.')
       return
     }
 
-    if ([sys, dia, bloodSugar].some((value) => value != null && value <= 0)) {
+    if ([sys, dia, pulseRate, bloodSugar].some((value) => value != null && value <= 0)) {
       setError('Readings must be greater than zero.')
       return
     }
@@ -84,6 +87,7 @@ export default function AddReadingPage() {
       const input = {
         systolic: sys,
         diastolic: dia,
+        pulse: pulseRate,
         blood_sugar: bloodSugar,
         sugar_type: bloodSugar == null ? null : sugarType,
         notes: notes.trim() || null,
@@ -131,7 +135,7 @@ export default function AddReadingPage() {
               </span>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Blood Pressure</h2>
-                <p className="text-sm text-slate-500">Leave blank if adding sugar only.</p>
+                <p className="text-sm text-slate-500">BP, pulse, and sugar can be saved independently.</p>
               </div>
             </div>
 
@@ -170,6 +174,35 @@ export default function AddReadingPage() {
               </label>
             </div>
             <p className="mt-2 text-center text-sm font-semibold text-slate-500">mmHg</p>
+
+            <div className="mt-5 border-t border-slate-100 pt-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                  <HeartPulse size={22} />
+                </span>
+                <div>
+                  <h3 className="font-bold text-slate-900">Pulse</h3>
+                  <p className="text-sm text-slate-500">Optional heart rate reading.</p>
+                </div>
+              </div>
+
+              <label className="mt-4 block text-sm font-semibold text-slate-700">
+                Pulse Rate
+                <div className="mt-2 flex items-center rounded-2xl border border-slate-300 px-4 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    step="1"
+                    value={pulse}
+                    onChange={(e) => setPulse(e.target.value)}
+                    className="h-16 min-w-0 flex-1 bg-transparent text-3xl font-bold text-slate-900 outline-none"
+                    placeholder="72"
+                  />
+                  <span className="text-sm font-semibold text-slate-500">bpm</span>
+                </div>
+              </label>
+            </div>
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
@@ -179,7 +212,7 @@ export default function AddReadingPage() {
               </span>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Blood Sugar</h2>
-                <p className="text-sm text-slate-500">Leave blank if adding BP only.</p>
+                <p className="text-sm text-slate-500">Leave blank when recording only BP or pulse.</p>
               </div>
             </div>
 
