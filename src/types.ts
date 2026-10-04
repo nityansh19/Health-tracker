@@ -5,6 +5,7 @@ export interface HealthReading {
   user_id: string
   systolic: number | null
   diastolic: number | null
+  pulse: number | null
   blood_sugar: number | null
   sugar_type: SugarType | null
   notes: string | null
@@ -30,4 +31,4 @@ export interface UserProfile {
   updated_at: string
 }
 
-export type MeasurementFilter = 'all' | 'bp' | 'sugar'
+export type MeasurementFilter = 'all' | 'bp' | 'sugar' | 'pulse'
