@@ -82,10 +82,11 @@ export default function HistoryPage() {
       </header>
 
       <section className="mt-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-card">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {[
             ['all', 'All'],
             ['bp', 'Blood Pressure'],
+            ['pulse', 'Pulse'],
             ['sugar', 'Blood Sugar']
           ].map(([value, label]) => (
             <button
@@ -164,6 +165,11 @@ export default function HistoryPage() {
                           {reading.systolic != null && reading.diastolic != null && (
                             <p className="text-lg font-bold text-slate-900">
                               BP: {reading.systolic} / {reading.diastolic} <span className="text-sm font-semibold text-slate-500">mmHg</span>
+                            </p>
+                          )}
+                          {reading.pulse != null && (
+                            <p className="text-lg font-bold text-slate-900">
+                              Pulse: {reading.pulse} <span className="text-sm font-semibold text-slate-500">bpm</span>
                             </p>
                           )}
                           {reading.blood_sugar != null && (
