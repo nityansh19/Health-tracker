@@ -5,7 +5,7 @@ import { BloodPressureChart, BloodSugarChart } from '../components/TrendChart'
 import { formatPeriod, rollingWeek } from '../lib/date'
 import { getProfile } from '../services/profile'
 import { listReadings } from '../services/readings'
-import type { HealthReading, UserProfile } from '../types'
+import type { HealthReading, SugarType, UserProfile } from '../types'
 import {
   delta,
   deltaText,
@@ -14,6 +14,8 @@ import {
   summarizePulse,
   summarizeSugar
 } from '../utils/stats'
+
+const sugarTypes: SugarType[] = ['Fasting', 'Before Meal', 'After Meal', 'Random']
 
 export default function ReportsPage() {
   const [offset, setOffset] = useState(0)
@@ -61,11 +63,33 @@ export default function ReportsPage() {
   const previousSugar = summarizeSugar(previousReadings)
   const grouped = groupReadingsByDay(readings)
 
+  const sortedReadings = useMemo(
+    () =>
+      [...readings].sort(
+        (a, b) => new Date(a.reading_timestamp).getTime() - new Date(b.reading_timestamp).getTime()
+      ),
+    [readings]
+  )
+  const daysTracked = Object.keys(grouped).length
+  const totalMeasurements = bp.count + pulse.count + sugar.count
+  const notesCount = readings.filter((reading) => Boolean(reading.notes?.trim())).length
+  const firstReading = sortedReadings[0] ?? null
+  const latestReading = sortedReadings[sortedReadings.length - 1] ?? null
+  const sugarTypeCounts = sugarTypes.map((type) => ({
+    type,
+    count: readings.filter((reading) => reading.blood_sugar != null && reading.sugar_type === type).length
+  }))
+  const untypedSugarCount = readings.filter(
+    (reading) => reading.blood_sugar != null && !reading.sugar_type
+  ).length
+
   async function makePdf() {
     const { generateWeeklyReportPdf } = await import('../utils/pdf')
     return generateWeeklyReportPdf({
       readings,
+      previousReadings,
       patientName: profile?.name,
+      doctorName: profile?.doctor_name,
       start: period.start,
       end: period.end
     })
@@ -144,6 +168,13 @@ export default function ReportsPage() {
         <p className="text-sm font-semibold text-blue-700">Doctor-friendly summary</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">Weekly Report</h1>
         <p className="mt-1 text-base text-slate-600">{formatPeriod(period.start, period.end)}</p>
+        {(profile?.name || profile?.doctor_name) && (
+          <p className="mt-2 text-sm text-slate-500">
+            {profile?.name ? `Patient: ${profile.name}` : ''}
+            {profile?.name && profile?.doctor_name ? ' • ' : ''}
+            {profile?.doctor_name ? `Doctor: ${profile.doctor_name}` : ''}
+          </p>
+        )}
       </header>
 
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
@@ -173,6 +204,36 @@ export default function ReportsPage() {
         </div>
       ) : (
         <>
+          <section className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Week at a glance</p>
+              <h2 className="mt-1 text-lg font-bold text-slate-900">Tracking Overview</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                A quick view of how much data was recorded during this report period.
+              </p>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <OverviewItem label="Saved entries" value={String(readings.length)} />
+              <OverviewItem label="Days tracked" value={daysTracked + ' / 7'} />
+              <OverviewItem label="Measurements" value={String(totalMeasurements)} />
+              <OverviewItem label="Entries with notes" value={String(notesCount)} />
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                <span>
+                  <strong className="text-slate-800">First:</strong>{' '}
+                  {firstReading ? format(new Date(firstReading.reading_timestamp), 'EEE, d MMM • h:mm a') : '—'}
+                </span>
+                <span>
+                  <strong className="text-slate-800">Latest:</strong>{' '}
+                  {latestReading ? format(new Date(latestReading.reading_timestamp), 'EEE, d MMM • h:mm a') : '—'}
+                </span>
+              </div>
+            </div>
+          </section>
+
           <ReportSummaryCard
             title="Blood Pressure"
             unit="mmHg"
@@ -195,7 +256,7 @@ export default function ReportsPage() {
             latest={pulse.latest ? String(pulse.latest.pulse) : '—'}
           >
             <p className="rounded-2xl bg-rose-50 p-4 text-sm font-medium text-rose-700">
-              Pulse readings are recorded in beats per minute.
+              Pulse readings are recorded in beats per minute and included in the downloadable report.
             </p>
           </ReportSummaryCard>
 
@@ -210,6 +271,21 @@ export default function ReportsPage() {
           >
             <BloodSugarChart readings={readings} />
           </ReportSummaryCard>
+
+          {sugar.count > 0 && (
+            <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
+              <h2 className="text-lg font-bold text-slate-900">Blood Sugar Timing</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Shows the context selected when each sugar reading was recorded.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {sugarTypeCounts.map((item) => (
+                  <OverviewItem key={item.type} label={item.type} value={String(item.count)} />
+                ))}
+                {untypedSugarCount > 0 && <OverviewItem label="Not specified" value={String(untypedSugarCount)} />}
+              </div>
+            </section>
+          )}
 
           {(bp.count > 0 || pulse.count > 0 || sugar.count > 0) && (
             <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
@@ -263,6 +339,7 @@ export default function ReportsPage() {
 
           <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
             <h2 className="text-lg font-bold text-slate-900">Daily Readings</h2>
+            <p className="mt-1 text-sm text-slate-500">Complete day-by-day record, including saved notes.</p>
             <div className="mt-4 space-y-5">
               {Object.entries(grouped).map(([day, dayReadings]) => (
                 <div key={day}>
@@ -287,6 +364,11 @@ export default function ReportsPage() {
                           {reading.blood_sugar != null && <span>Sugar: {reading.blood_sugar} mg/dL</span>}
                           {reading.sugar_type && <span className="font-medium text-slate-600">{reading.sugar_type}</span>}
                         </div>
+                        {reading.notes?.trim() && (
+                          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm leading-5 text-amber-900">
+                            <strong>Note:</strong> {reading.notes}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -386,6 +468,15 @@ function ReportSummaryCard({
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
+    </div>
+  )
+}
+
+function OverviewItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
     </div>
