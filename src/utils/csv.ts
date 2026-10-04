@@ -14,7 +14,7 @@ export function downloadReadingsCsv(readings: HealthReading[], start: Date, end:
   )
 
   const rows = [
-    ['Date', 'Time', 'Systolic', 'Diastolic', 'Blood Sugar', 'Sugar Type', 'Notes'],
+    ['Date', 'Time', 'Systolic', 'Diastolic', 'Pulse', 'Blood Sugar', 'Sugar Type', 'Notes'],
     ...sorted.map((reading) => {
       const date = new Date(reading.reading_timestamp)
       return [
@@ -22,6 +22,7 @@ export function downloadReadingsCsv(readings: HealthReading[], start: Date, end:
         format(date, 'HH:mm'),
         reading.systolic,
         reading.diastolic,
+        reading.pulse,
         reading.blood_sugar,
         reading.sugar_type,
         reading.notes
