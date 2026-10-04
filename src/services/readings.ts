@@ -2,6 +2,33 @@ import { requireSupabase } from '../lib/supabase'
 import type { HealthReading, MeasurementFilter, ReadingInput } from '../types'
 
 const RECENT_CACHE_KEY = 'health-tracker-recent-readings'
+const PULSE_MARKER = /^\[\[pulse:(\d+(?:\.\d+)?)\]\]\n?/
+
+function normalizeReading(raw: any): HealthReading {
+  const storedNotes = typeof raw.notes === 'string' ? raw.notes : null
+  const marker = storedNotes?.match(PULSE_MARKER)
+  const pulseFromNotes = marker ? Number(marker[1]) : null
+  const cleanNotes = storedNotes?.replace(PULSE_MARKER, '').trim() || null
+
+  return {
+    ...raw,
+    pulse: raw.pulse != null ? Number(raw.pulse) : pulseFromNotes,
+    notes: cleanNotes
+  } as HealthReading
+}
+
+function toStoredPayload(input: ReadingInput) {
+  const { pulse, notes, ...rest } = input
+  const cleanNotes = notes?.trim() || ''
+  const storedNotes = pulse == null
+    ? cleanNotes || null
+    : '[[pulse:' + pulse + ']]' + (cleanNotes ? '\n' + cleanNotes : '')
+
+  return {
+    ...rest,
+    notes: storedNotes
+  }
+}
 
 export interface ReadingQuery {
   measurement?: MeasurementFilter
@@ -17,9 +44,6 @@ function applyMeasurement(query: any, measurement: MeasurementFilter = 'all') {
   if (measurement === 'sugar') {
     return query.not('blood_sugar', 'is', null)
   }
-  if (measurement === 'pulse') {
-    return query.not('pulse', 'is', null)
-  }
   return query
 }
 
@@ -34,11 +58,16 @@ export async function listReadings(filters: ReadingQuery = {}): Promise<HealthRe
 
   if (filters.from) query = query.gte('reading_timestamp', filters.from.toISOString())
   if (filters.to) query = query.lte('reading_timestamp', filters.to.toISOString())
-  if (filters.limit) query = query.limit(filters.limit)
+  if (filters.limit && filters.measurement !== 'pulse') query = query.limit(filters.limit)
 
   const { data, error } = await query
   if (error) throw new Error("Couldn't load your readings.")
-  return (data ?? []) as HealthReading[]
+
+  let readings = (data ?? []).map(normalizeReading)
+  if (filters.measurement === 'pulse') {
+    readings = readings.filter((reading) => reading.pulse != null)
+  }
+  return filters.limit ? readings.slice(0, filters.limit) : readings
 }
 
 export async function listRecentReadings(limit = 5): Promise<{ readings: HealthReading[]; offline: boolean }> {
@@ -62,18 +91,18 @@ export async function getReading(id: string): Promise<HealthReading> {
   const client = requireSupabase()
   const { data, error } = await client.from('health_readings').select('*').eq('id', id).single()
   if (error || !data) throw new Error("Couldn't load this reading.")
-  return data as HealthReading
+  return normalizeReading(data)
 }
 
 export async function createReading(input: ReadingInput) {
   const client = requireSupabase()
-  const { error } = await client.from('health_readings').insert(input)
+  const { error } = await client.from('health_readings').insert(toStoredPayload(input))
   if (error) throw new Error("Couldn't save your reading. Please try again.")
 }
 
 export async function updateReading(id: string, input: ReadingInput) {
   const client = requireSupabase()
-  const { error } = await client.from('health_readings').update(input).eq('id', id)
+  const { error } = await client.from('health_readings').update(toStoredPayload(input)).eq('id', id)
   if (error) throw new Error("Couldn't update your reading. Please try again.")
 }
 
