@@ -3,9 +3,10 @@ import { Download, FileSpreadsheet, Share2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { BloodPressureChart, BloodSugarChart } from '../components/TrendChart'
 import { formatPeriod, rollingWeek } from '../lib/date'
+import { listMedications } from '../services/medications'
 import { getProfile } from '../services/profile'
 import { listReadings } from '../services/readings'
-import type { HealthReading, SugarType, UserProfile } from '../types'
+import type { HealthReading, Medication, SugarType, UserProfile } from '../types'
 import {
   delta,
   deltaText,
@@ -22,6 +23,7 @@ export default function ReportsPage() {
   const [readings, setReadings] = useState<HealthReading[]>([])
   const [previousReadings, setPreviousReadings] = useState<HealthReading[]>([])
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [medications, setMedications] = useState<Medication[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState('')
@@ -39,13 +41,15 @@ export default function ReportsPage() {
     Promise.all([
       listReadings({ from: period.start, to: period.end }),
       listReadings({ from: previousPeriod.start, to: previousPeriod.end }),
-      getProfile().catch(() => null)
+      getProfile().catch(() => null),
+      listMedications({ activeOnly: true }).catch(() => [])
     ])
-      .then(([current, previous, userProfile]) => {
+      .then(([current, previous, userProfile, currentMedications]) => {
         if (!active) return
         setReadings(current)
         setPreviousReadings(previous)
         setProfile(userProfile)
+        setMedications(currentMedications)
       })
       .catch((err) => active && setError(err instanceof Error ? err.message : "Couldn't load this report."))
       .finally(() => active && setLoading(false))
@@ -90,6 +94,7 @@ export default function ReportsPage() {
       previousReadings,
       patientName: profile?.name,
       doctorName: profile?.doctor_name,
+      medications,
       start: period.start,
       end: period.end
     })
@@ -336,6 +341,39 @@ export default function ReportsPage() {
               </div>
             </section>
           )}
+
+
+          <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Current Medicines</h2>
+                <p className="mt-1 text-sm text-slate-500">Included in the downloadable doctor report.</p>
+              </div>
+              <span className="text-xs font-bold text-slate-400">{medications.length} active</span>
+            </div>
+
+            {medications.length ? (
+              <div className="mt-4 space-y-3">
+                {medications.map((medicine) => (
+                  <div key={medicine.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-bold text-slate-900">{medicine.name}</p>
+                      <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700">
+                        {medicine.purpose}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-bold text-slate-800">{medicine.dosage}</p>
+                    {medicine.schedule && <p className="mt-1 text-sm text-slate-600">{medicine.schedule}</p>}
+                    {medicine.notes && <p className="mt-2 text-sm leading-5 text-slate-500">{medicine.notes}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-medium text-slate-500">
+                No active medicines are currently saved.
+              </p>
+            )}
+          </section>
 
           <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-card">
             <h2 className="text-lg font-bold text-slate-900">Daily Readings</h2>
