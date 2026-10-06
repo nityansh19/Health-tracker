@@ -373,6 +373,26 @@ input[type="number"]::-webkit-outer-spin-button {
     transition-duration: 0.01ms !important;
   }
 
+  /* Keep the branded splash visible instead of letting the global
+     reduced-motion rule instantly run its exit animation. */
+  .creator-intro {
+    animation: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+
+  .creator-intro::before,
+  .creator-intro__ambient,
+  .creator-intro__ring,
+  .creator-intro__spark {
+    animation: none !important;
+  }
+
+  .creator-intro__ambient {
+    opacity: 0.55;
+  }
+
   .creator-intro__mark,
   .creator-intro__credit,
   .creator-intro__product,
