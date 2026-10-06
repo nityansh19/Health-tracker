@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
+import CreatorIntro from './components/CreatorIntro'
 import LoadingScreen from './components/LoadingScreen'
 import { useAuth } from './context/AuthContext'
 import { supabaseConfigured } from './lib/supabase'
@@ -15,7 +16,19 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 export default function App() {
   const { user, loading } = useAuth()
+  const [showCreatorIntro, setShowCreatorIntro] = useState(true)
 
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const timer = window.setTimeout(
+      () => setShowCreatorIntro(false),
+      prefersReducedMotion ? 550 : 1750,
+    )
+
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (showCreatorIntro) return <CreatorIntro />
   if (!supabaseConfigured) return <SetupRequired />
   if (loading) return <LoadingScreen />
   if (!user) return <AuthPage />
