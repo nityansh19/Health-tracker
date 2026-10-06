@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import CreatorIntro from './components/CreatorIntro'
 import LoadingScreen from './components/LoadingScreen'
+import ThemeToggle from './components/ThemeToggle'
 import { useAuth } from './context/AuthContext'
 import { supabaseConfigured } from './lib/supabase'
 import AuthPage from './pages/AuthPage'
@@ -66,12 +67,37 @@ export default function App() {
   }, [])
 
   if (showCreatorIntro) return <CreatorIntro />
-  if (!supabaseConfigured) return <SetupRequired />
-  if (loading) return <LoadingScreen />
-  if (!user) return <AuthPage />
+  if (!supabaseConfigured) {
+    return (
+      <>
+        <ThemeToggle />
+        <SetupRequired />
+      </>
+    )
+  }
+
+  if (loading) {
+    return (
+      <>
+        <ThemeToggle />
+        <LoadingScreen />
+      </>
+    )
+  }
+
+  if (!user) {
+    return (
+      <>
+        <ThemeToggle />
+        <AuthPage />
+      </>
+    )
+  }
 
   return (
-    <Suspense fallback={<LoadingScreen label="Opening…" />}>
+    <>
+      <ThemeToggle />
+      <Suspense fallback={<LoadingScreen label="Opening…" />}>
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
@@ -83,7 +109,8 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Suspense>
+      </Suspense>
+    </>
   )
 }
 
