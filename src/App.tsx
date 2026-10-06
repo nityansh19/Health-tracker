@@ -20,12 +20,50 @@ export default function App() {
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const timer = window.setTimeout(
-      () => setShowCreatorIntro(false),
-      prefersReducedMotion ? 550 : 1750,
-    )
+    const introDuration = prefersReducedMotion ? 550 : 1750
+    let hideTimer: number | undefined
+    let wasHidden = false
 
-    return () => window.clearTimeout(timer)
+    const hideIntroAfterDelay = () => {
+      if (hideTimer) window.clearTimeout(hideTimer)
+      hideTimer = window.setTimeout(() => setShowCreatorIntro(false), introDuration)
+    }
+
+    const replayIntro = () => {
+      setShowCreatorIntro(true)
+      hideIntroAfterDelay()
+    }
+
+    // Show the creator intro on every fresh app/site launch.
+    hideIntroAfterDelay()
+
+    // Replay it whenever the installed PWA or browser tab is reopened
+    // after being sent to the background.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        wasHidden = true
+        return
+      }
+
+      if (document.visibilityState === 'visible' && wasHidden) {
+        wasHidden = false
+        replayIntro()
+      }
+    }
+
+    // Covers browser back/forward cache restores as another kind of reopen.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) replayIntro()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pageshow', handlePageShow)
+
+    return () => {
+      if (hideTimer) window.clearTimeout(hideTimer)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pageshow', handlePageShow)
+    }
   }, [])
 
   if (showCreatorIntro) return <CreatorIntro />
