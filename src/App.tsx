@@ -19,8 +19,7 @@ export default function App() {
   const [showCreatorIntro, setShowCreatorIntro] = useState(true)
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const introDuration = prefersReducedMotion ? 1400 : 3200
+    const introDuration = 3200
     let hideTimer: number | undefined
     let wasHidden = false
 
