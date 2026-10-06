@@ -67,7 +67,12 @@ export default function HomePage() {
   return (
     <div className="px-5 pb-4 pt-6">
       <header className="mb-5">
-        <p className="text-sm font-semibold text-blue-700">Health Tracker</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-blue-700">Health Tracker</p>
+          <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500 shadow-sm">
+            Made by Nityansh
+          </span>
+        </div>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
           Hello, {profile?.name?.trim() || 'Mom'}
         </h1>
